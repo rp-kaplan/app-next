@@ -14,6 +14,8 @@
     "fs:allow-write-file",
     "fs:allow-write-text-file",
     "fs:allow-create",
+    "fs:allow-remove",
+    "fs:allow-mkdir",
     "dialog:default",
     "dialog:allow-open",
     "shell:default",

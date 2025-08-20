@@ -4,11 +4,13 @@
   import { writeTextFile, readTextFile, exists } from "@tauri-apps/plugin-fs";
   import { join } from "@tauri-apps/api/path";
   import MonacoEditor from "$lib/MonacoEditor.svelte";
+  import FileTreeComponent from "$lib/FileTreeComponent.svelte";
   import { defaultHTML, defaultCSS, defaultJS } from "$lib/templates";
 
   let projectFolder = "";
   let files = ["index.html", "style.css", "script.js"];
   let selectedFile = "index.html";
+  let selectedFilePath = "";
   let fileContents = "";
   let serverRunning = false;
   let showFolderDialog = true;
@@ -46,7 +48,7 @@
       alert(`Dialog test result: ${result || 'No selection'}`);
     } catch (error) {
       console.error('Dialog test error:', error);
-      alert(`Dialog test error: ${error.message || error}`);
+      alert(`Dialog test error: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -87,7 +89,7 @@
           setTimeout(() => statusMessage = "", 2000);
         } catch (fileError) {
           console.error('Error creating/loading files:', fileError);
-          statusMessage = `Error with project files: ${fileError.message || fileError}`;
+          statusMessage = `Error with project files: ${fileError instanceof Error ? fileError.message : String(fileError)}`;
           setTimeout(() => statusMessage = "", 5000);
         }
       } else {
@@ -97,7 +99,7 @@
       }
     } catch (error) {
       console.error('Error in selectProjectFolder:', error);
-      statusMessage = `Error: ${error.message || error.toString()}`;
+      statusMessage = `Error: ${error instanceof Error ? error.message : String(error)}`;
       setTimeout(() => statusMessage = "", 5000);
     } finally {
       isLoading = false;
@@ -140,6 +142,7 @@
     selectedFile = file;
     try {
       const filePath = await join(projectFolder, file);
+      selectedFilePath = filePath;
       const fileExists = await exists(filePath);
       
       if (fileExists) {
@@ -151,13 +154,34 @@
       }
     } catch (error) {
       console.error('Error loading file:', error);
-      fileContents = `// Error loading ${file}: ${error.message || error}`;
+      fileContents = `// Error loading ${file}: ${error instanceof Error ? error.message : String(error)}`;
+    }
+  }
+
+  // Handle file selection from FileTree
+  async function handleFileSelected(event: CustomEvent) {
+    const { fileName, filePath } = event.detail;
+    selectedFile = fileName;
+    selectedFilePath = filePath;
+    
+    try {
+      const fileExists = await exists(filePath);
+      if (fileExists) {
+        fileContents = await readTextFile(filePath);
+        console.log(`Loaded ${fileName} successfully`);
+      } else {
+        fileContents = `// ${fileName} does not exist\n// Create this file to start editing`;
+      }
+    } catch (error) {
+      console.error('Error loading file:', error);
+      fileContents = `// Error loading ${fileName}: ${error instanceof Error ? error.message : String(error)}`;
     }
   }
 
   async function saveFile() {
     try {
-      await writeTextFile(await join(projectFolder, selectedFile), fileContents);
+      const filePath = selectedFilePath || await join(projectFolder, selectedFile);
+      await writeTextFile(filePath, fileContents);
       console.log('File saved successfully');
     } catch (error) {
       console.error('Error saving file:', error);
@@ -304,28 +328,11 @@
       <div class="flex flex-1 overflow-hidden">
         <!-- File Sidebar -->
         <nav class="w-64 bg-editor-sidebar border-r border-editor-border p-4 overflow-y-auto">
-          <h3 class="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-4 px-2">
-            Project Files
-          </h3>
-          
-          <div class="space-y-1">
-            {#each files as file}
-              <button 
-                class="file-tab"
-                class:file-tab-selected={selectedFile === file}
-                on:click={() => loadFile(file)}
-              >
-                <span class="text-lg">
-                  {#if file.endsWith('.html')}📄
-                  {:else if file.endsWith('.css')}🎨
-                  {:else if file.endsWith('.js')}⚡
-                  {:else}📝
-                  {/if}
-                </span>
-                <span class="font-mono text-sm">{file}</span>
-              </button>
-            {/each}
-          </div>
+          <FileTreeComponent 
+            {projectFolder}
+            {selectedFile}
+            on:fileSelected={handleFileSelected}
+          />
         </nav>
         
         <!-- Editor Area -->
