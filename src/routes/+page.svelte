@@ -39,18 +39,6 @@
     console.log('Discovered files:', files);
   }
 
-  // Test function to verify dialog API works
-  async function testDialog() {
-    try {
-      console.log('Testing dialog...');
-      const result = await open({ directory: true });
-      console.log('Test dialog result:', result);
-      alert(`Dialog test result: ${result || 'No selection'}`);
-    } catch (error) {
-      console.error('Dialog test error:', error);
-      alert(`Dialog test error: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  }
 
   async function selectProjectFolder() {
     try {
@@ -223,20 +211,20 @@
   }
 </script>
 
-<main class="h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white font-ui">
+<main class="h-screen bg-gray-900 text-white font-ui">
   {#if showFolderDialog}
     <div class="flex items-center justify-center min-h-screen p-8">
-      <div class="glass-card p-12 max-w-md w-full text-center space-y-6">
+      <div class="bg-gray-800 border border-gray-700 rounded-lg shadow-lg p-12 max-w-md w-full text-center space-y-6">
         <div class="space-y-2">
-          <h1 class="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+          <h1 class="text-4xl font-bold text-gray-100">
             🚀 Project Builder
           </h1>
-          <p class="text-gray-300 text-lg">Create and manage your web projects with ease</p>
+          <p class="text-gray-400 text-lg">Create and manage your web projects with ease</p>
         </div>
         
         <div class="space-y-4">
           <button 
-            class="btn-primary w-full text-lg"
+            class="w-full text-lg bg-gray-700 hover:bg-gray-600 text-white font-medium px-6 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             on:click={selectProjectFolder}
             disabled={isLoading}
           >
@@ -251,29 +239,20 @@
               </div>
             {/if}
           </button>
-          
-          <button 
-            class="btn-secondary w-full"
-            on:click={testDialog}
-            disabled={isLoading}
-          >
-            <div class="flex items-center justify-center gap-2">
-              🧪 Test Dialog
-            </div>
-          </button>
+
         </div>
         
         {#if statusMessage && !isLoading}
-          <div class="mt-6 p-4 bg-green-500/20 border border-green-500/50 rounded-lg">
-            <p class="text-green-300 font-medium">{statusMessage}</p>
+          <div class="mt-6 p-4 bg-gray-700 border border-gray-600 rounded-lg">
+            <p class="text-gray-300 font-medium">{statusMessage}</p>
           </div>
         {/if}
       </div>
     </div>
   {:else}
-    <div class="flex flex-col h-screen bg-editor-bg">
+    <div class="flex flex-col h-screen bg-gray-900">
       <!-- Top Bar -->
-      <header class="bg-editor-topbar border-b border-editor-border px-6 py-4">
+      <header class="bg-gray-800 border-b border-gray-700 px-6 py-4">
         <div class="flex justify-between items-center">
           <div class="flex flex-col">
             <h2 class="text-lg font-semibold text-white flex items-center gap-2">
@@ -284,16 +263,16 @@
           
           <div class="flex items-center gap-4">
             {#if statusMessage}
-              <div class="flex items-center gap-2 px-3 py-1 bg-yellow-500/20 border border-yellow-500/50 rounded-lg">
-                <div class="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
-                <span class="text-yellow-300 text-sm font-medium">{statusMessage}</span>
+              <div class="flex items-center gap-2 px-3 py-1 bg-gray-700 border border-gray-600 rounded-lg">
+                <div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
+                <span class="text-gray-300 text-sm font-medium">{statusMessage}</span>
               </div>
             {/if}
             
             <div class="flex items-center gap-2">
               <button 
-                class="btn-server flex items-center gap-2"
-                class:btn-server-active={serverRunning}
+                class="bg-gray-700 hover:bg-gray-600 text-white font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+                class:bg-gray-600={serverRunning}
                 on:click={startServer} 
                 disabled={serverRunning || isLoading}
               >
@@ -306,7 +285,7 @@
               </button>
               
               <button 
-                class="btn-server btn-server-stop flex items-center gap-2"
+                class="bg-gray-700 hover:bg-gray-600 text-white font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
                 on:click={stopServer} 
                 disabled={!serverRunning || isLoading}
               >
@@ -315,7 +294,7 @@
               
               {#if serverRunning}
                 <a href="http://localhost:8080" target="_blank" 
-                   class="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-medium px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-2">
+                   class="bg-gray-600 hover:bg-gray-500 text-white font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2">
                   🌐 Preview
                 </a>
               {/if}
@@ -327,7 +306,7 @@
       <!-- Main Content -->
       <div class="flex flex-1 overflow-hidden">
         <!-- File Sidebar -->
-        <nav class="w-64 bg-editor-sidebar border-r border-editor-border p-4 overflow-y-auto">
+        <nav class="w-64 bg-gray-850 border-r border-gray-700 p-4 overflow-y-auto">
           <FileTreeComponent 
             {projectFolder}
             {selectedFile}
@@ -338,7 +317,7 @@
         <!-- Editor Area -->
         <div class="flex flex-col flex-1">
           <!-- Editor Header -->
-          <div class="bg-editor-topbar border-b border-editor-border px-4 py-3 flex justify-between items-center">
+          <div class="bg-gray-800 border-b border-gray-700 px-4 py-3 flex justify-between items-center">
             <div class="flex items-center gap-2">
               <span class="text-lg">
                 {#if selectedFile.endsWith('.html')}📄
@@ -351,7 +330,7 @@
             </div>
             
             <button 
-              class="bg-accent-blue hover:bg-blue-600 text-white font-medium px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" 
+              class="bg-gray-700 hover:bg-gray-600 text-white font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" 
               on:click={saveFile} 
               disabled={isLoading}
             >
@@ -365,7 +344,7 @@
           </div>
           
           <!-- Monaco Editor -->
-          <div class="flex-1 bg-editor-bg">
+          <div class="flex-1 bg-gray-900">
             <MonacoEditor 
               bind:value={fileContents} 
               language={selectedFile.endsWith('.js') ? 'javascript' : selectedFile.endsWith('.css') ? 'css' : 'html'}
