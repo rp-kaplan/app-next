@@ -10,10 +10,26 @@ on:
 jobs:
   build:
     name: Build Bundles
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          # Ubuntu builds
+          - runner: ubuntu-latest
+            os: ubuntu
+            arch: x64
+          # macOS Intel builds  
+          - runner: macos-13
+            os: macos
+            arch: x64
+          # macOS Apple Silicon builds
+          - runner: macos-14
+            os: macos
+            arch: arm64
+          # Windows builds
+          - runner: windows-latest
+            os: windows
+            arch: x64
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -26,7 +42,7 @@ jobs:
 
       # Install system dependencies for Ubuntu
       - name: Install Ubuntu dependencies
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu'
         run: |
           sudo apt update
           sudo apt install -y \
@@ -42,7 +58,7 @@ jobs:
 
       # Install system dependencies for Windows
       - name: Install Windows dependencies
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'windows'
         run: |
           # Install WebView2 (usually pre-installed on Windows runners)
           # Install Visual Studio Build Tools (usually available)
@@ -50,6 +66,8 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.os == 'macos' && matrix.arch == 'x64' && 'x86_64-apple-darwin' || matrix.os == 'macos' && matrix.arch == 'arm64' && 'aarch64-apple-darwin' || '' }}
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
@@ -74,30 +92,41 @@ jobs:
           # Disable Tauri updater for CI builds
           TAURI_PRIVATE_KEY: ""
           TAURI_KEY_PASSWORD: ""
+          # Set target for macOS builds
+          TAURI_BUNDLE_TARGETS: ${{ matrix.os == 'macos' && matrix.arch == 'x64' && 'x86_64-apple-darwin' || matrix.os == 'macos' && matrix.arch == 'arm64' && 'aarch64-apple-darwin' || '' }}
 
       - name: Upload bundle artifact (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu'
         uses: actions/upload-artifact@v4
         with:
-          name: tauri-bundle-ubuntu
+          name: tauri-bundle-ubuntu-${{ matrix.arch }}
           path: |
             src-tauri/target/release/bundle/deb/*.deb
             src-tauri/target/release/bundle/appimage/*.AppImage
 
-      - name: Upload bundle artifact (macOS)
-        if: matrix.os == 'macos-latest'
+      - name: Upload bundle artifact (macOS Intel)
+        if: matrix.os == 'macos' && matrix.arch == 'x64'
         uses: actions/upload-artifact@v4
         with:
-          name: tauri-bundle-macos
+          name: tauri-bundle-macos-intel
           path: |
-            src-tauri/target/release/bundle/dmg/*.dmg
-            src-tauri/target/release/bundle/macos/*.app
+            src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
+            src-tauri/target/x86_64-apple-darwin/release/bundle/macos/*.app
+
+      - name: Upload bundle artifact (macOS Apple Silicon)
+        if: matrix.os == 'macos' && matrix.arch == 'arm64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tauri-bundle-macos-silicon
+          path: |
+            src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+            src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app
 
       - name: Upload bundle artifact (Windows)
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'windows'
         uses: actions/upload-artifact@v4
         with:
-          name: tauri-bundle-windows
+          name: tauri-bundle-windows-${{ matrix.arch }}
           path: |
             src-tauri/target/release/bundle/msi/*.msi
             src-tauri/target/release/bundle/nsis/*.exe
@@ -106,20 +135,28 @@ jobs:
     name: Create Release
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
     steps:
       - name: Download all bundle artifacts
         uses: actions/download-artifact@v4
         with:
           path: dist
 
+      - name: List downloaded artifacts (debug)
+        run: find dist -type f | head -20
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/tauri-bundle-ubuntu/*
-            dist/tauri-bundle-macos/*
-            dist/tauri-bundle-windows/*
+            dist/tauri-bundle-ubuntu-x64/deb/*.deb
+            dist/tauri-bundle-ubuntu-x64/appimage/*.AppImage
+            dist/tauri-bundle-macos-intel/dmg/*.dmg
+            dist/tauri-bundle-macos-intel/macos/*.app
+            dist/tauri-bundle-macos-silicon/dmg/*.dmg
+            dist/tauri-bundle-macos-silicon/macos/*.app
+            dist/tauri-bundle-windows-x64/msi/*.msi
+            dist/tauri-bundle-windows-x64/nsis/*.exe
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
